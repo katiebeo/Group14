@@ -326,4 +326,4 @@ const styles = ({ colors }: { colors: any }) =>
     loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
     loadingText: { marginTop: 12, color: colors.TEXT },
     bottomBarWrap: { position: "absolute", bottom: 0, left: 0, right: 0 },
-  });
+  }); //BEO
