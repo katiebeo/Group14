@@ -8,7 +8,9 @@ export interface ManifestItem {
   status: string;
   startingUserName: string;
   description: string;
+  createdByEmail?: string; 
 }
+
 
 export async function fetchUserManifests(): Promise<ManifestItem[]> {
   const token = await AsyncStorage.getItem("access_token");
@@ -38,7 +40,9 @@ return manifestList.map((m: any) => ({
   dateCreated: m.createdTime ?? new Date().toISOString(),
   status: m.status ?? "Not Started",
   startingUserName: m.startingUserName ?? "Unknown",
-  description: m.description ?? "No description", 
+  description: m.description ?? "No description",
+  createdByEmail: m.createdByEmail ?? null, 
 }));
+
 }
 

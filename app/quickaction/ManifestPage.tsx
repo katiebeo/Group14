@@ -21,9 +21,20 @@ import FieldLabel from "../../components/FieldLabel";
 import InfoDot from "../../components/InfoDot";
 
 export default function ManifestPage() {
-  const { colors } = useTheme();
-  const s = styles(colors);
+  const { colors, isDark } = useTheme();
+  const s = styles(colors, isDark);
   const rawParams = useLocalSearchParams();
+
+
+  const FieldLabel = ({ children, style }: { children: React.ReactNode; style?: any }) => {
+  const { colors } = useTheme();
+  return (
+    <Text style={[{ fontWeight: "700", fontSize: 16, color: colors.TEXT }, style]}>
+      {children}
+    </Text>
+  );
+};
+
 
   const id = typeof rawParams.id === "string" ? rawParams.id : Array.isArray(rawParams.id) ? rawParams.id[0] : "";
   const name = typeof rawParams.name === "string" ? rawParams.name : Array.isArray(rawParams.name) ? rawParams.name[0] : "";
@@ -178,44 +189,46 @@ export default function ManifestPage() {
     }
   };
 
-  const submitEndManifest = async () => {
-    try {
-      const token = await AsyncStorage.getItem("access_token");
-      const orgId = await AsyncStorage.getItem("organisationId");
+const submitEndManifest = async () => {
+  try {
+    const token = await AsyncStorage.getItem("access_token");
+    const orgId = await AsyncStorage.getItem("organisationId");
 
-      if (!token || !orgId || !manifestDetails?.id || !targetDestination || !endingUser) {
-        throw new Error("Missing required fields to close manifest.");
-      }
-
-      if (manifestDetails.status?.toLowerCase().includes("finished") || manifestDetails.endTime) {
-        Alert.alert("Manifest is already closed.");
-        return;
-      }
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        OrganisationId: orgId.trim(),
-        "Content-Type": "application/json",
-      };
-
-      const query = `manifestId=${manifestDetails.id}&endPlaceId=${targetDestination}&endUserId=${endingUser}`;
-      const url = `${API_BASE_URL}/v1/manifests/CloseManifest/?${query}`;
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers,
-      });
-
-      const resultText = await res.text();
-      if (!res.ok) throw new Error(resultText || "Failed to close manifest");
-
-      Alert.alert("✅ Manifest Closed");
-      setShowEndModal(false);
-      refreshManifest();
-    } catch (err: any) {
-      Alert.alert("Error", err.message ?? "Unknown error");
+    if (!token || !orgId || !manifestDetails?.id || !targetDestination || !endingUser) {
+      throw new Error("Missing required fields to close manifest.");
     }
-  };
+
+    if (manifestDetails.status?.toLowerCase().includes("finished") || manifestDetails.endTime) {
+      Alert.alert("Manifest is already closed.");
+      return;
+    }
+
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      OrganisationId: orgId.trim(),
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+
+    const query = `manifestId=${manifestDetails.id}&endPlaceId=${targetDestination}&endUserId=${endingUser}`;
+    const url = `${API_BASE_URL}/v1/manifests/CloseManifest/?${query}`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+    });
+
+    const resultText = await res.text();
+    if (!res.ok) throw new Error(resultText || "Failed to close manifest");
+
+    Alert.alert("✅ Manifest Closed");
+    setShowEndModal(false);
+    refreshManifest();
+  } catch (err: any) {
+    Alert.alert("Error", err.message ?? "Unknown error");
+  }
+};
+
 
 
 
@@ -311,57 +324,73 @@ export default function ManifestPage() {
 
       {/* Start Manifest Modal */}
       <Modal visible={showStartModal} animationType="slide">
-        <SafeAreaView style={{ flex: 1, padding: 16 }}>
-          <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 12 }}>Start Manifest</Text>
+  <SafeAreaView style={{ flex: 1, padding: 16, backgroundColor: colors.BACK }}>
+    <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 12, color: colors.TEXT }}>
+      Start Manifest
+    </Text>
 
-          <FieldLabel>Start Place <InfoDot /></FieldLabel>
-          <SimpleSelect value={startPlace} options={placeOptions} onChange={setStartPlace} />
+    <FieldLabel>Start Place <InfoDot /></FieldLabel>
+    <SimpleSelect value={startPlace} options={placeOptions} onChange={setStartPlace} />
 
-          <FieldLabel style={{ marginTop: 12 }}>Starting User <InfoDot /></FieldLabel>
-          <SimpleSelect value={startingUser} options={userOptions} onChange={setStartingUser} />
+    <FieldLabel style={{ marginTop: 12 }}>Starting User <InfoDot /></FieldLabel>
+    <SimpleSelect value={startingUser} options={userOptions} onChange={setStartingUser} />
 
-          <FieldLabel style={{ marginTop: 12 }}>Start Time <InfoDot /></FieldLabel>
-          <Pressable onPress={() => setShowStartPicker(true)} style={s.input}>
-            <Text style={{ flex: 1, color: startTime ? "#111" : "#777" }}>
-              {startTime ? startTime.toLocaleString() : "Select...  "}
-              <Ionicons name="calendar-outline" size={18} />
-            </Text>
-          </Pressable>
-          {showStartPicker && (
-            <DateTimePicker
-              value={startTime || new Date()}
-              onChange={(_, d) => {
-                setShowStartPicker(false);
-                if (d) setStartTime(d);
-              }}
-              mode="time"
-            />
-          )}
+    <FieldLabel style={{ marginTop: 12 }}>Start Time <InfoDot /></FieldLabel>
+    <Pressable
+      onPress={() => setShowStartPicker(true)}
+      style={[
+        s.input,
+        {
+          backgroundColor: isDark ? colors.INPUT : "#fff",
+          borderColor: isDark ? colors.MUTED : "#E1DFD6",
+        },
+      ]}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+        <Text style={{ flex: 1, color: startTime ? colors.TEXT : colors.PLACEHOLDER }}>
+          {startTime ? startTime.toLocaleString() : "Select..."}
+        </Text>
+        <Ionicons name="calendar-outline" size={18} color={colors.TEXT} />
+      </View>
+    </Pressable>
 
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 24 }}>
-            <Pressable
-              onPress={() => {
-                setShowStartModal(false);
-                setStartPlace(null);
-                setStartingUser(null);
-                setStartTime(null);
-              }}
-              style={s.secondaryBtn}
-            >
-              <Text style={s.secondaryBtnText}>Cancel</Text>
-            </Pressable>
+    {showStartPicker && (
+      <DateTimePicker
+        value={startTime || new Date()}
+        onChange={(_, d) => {
+          setShowStartPicker(false);
+          if (d) setStartTime(d);
+        }}
+        mode="time"
+      />
+    )}
 
-            <Pressable onPress={submitStartManifest} style={s.primaryBtn}>
-              <Text style={s.primaryBtnText}>Confirm</Text>
-            </Pressable>
-          </View>
-        </SafeAreaView>
-      </Modal>
+    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 24 }}>
+      <Pressable
+        onPress={() => {
+          setShowStartModal(false);
+          setStartPlace(null);
+          setStartingUser(null);
+          setStartTime(null);
+        }}
+        style={s.secondaryBtn}
+      >
+        <Text style={s.secondaryBtnText}>Cancel</Text>
+      </Pressable>
+
+      <Pressable onPress={submitStartManifest} style={s.primaryBtn}>
+        <Text style={s.primaryBtnText}>Confirm</Text>
+      </Pressable>
+    </View>
+  </SafeAreaView>
+</Modal>
 
       {/* End Manifest Modal */}
       <Modal visible={showEndModal} animationType="slide">
-  <SafeAreaView style={{ flex: 1, padding: 16 }}>
-    <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 12 }}>End Manifest</Text>
+  <SafeAreaView style={{ flex: 1, padding: 16, backgroundColor: colors.BACK }}>
+    <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 12, color: colors.TEXT }}>
+      End Manifest
+    </Text>
 
     <FieldLabel>Target Destination <InfoDot /></FieldLabel>
     <SimpleSelect value={targetDestination} options={placeOptions} onChange={setTargetDestination} />
@@ -391,7 +420,7 @@ export default function ManifestPage() {
   );
 }
 
-const styles = (colors: any) =>
+const styles = (colors: any, isDark: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -403,7 +432,7 @@ const styles = (colors: any) =>
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginTop: 24, // or even 16 if you want it tighter
+      marginTop: 24,
       marginBottom: 12,
     },
     statusBubble: {
@@ -473,10 +502,11 @@ const styles = (colors: any) =>
       alignSelf: "center",
       flexShrink: 1,
     },
+
     input: {
-      backgroundColor: "#fff",
+      backgroundColor: isDark ? colors.INPUT : "#fff",
       borderWidth: 1,
-      borderColor: "#E1DFD6",
+      borderColor: isDark ? colors.MUTED : "#E1DFD6",
       borderRadius: 10,
       paddingHorizontal: 12,
       paddingVertical: 12,
@@ -485,6 +515,7 @@ const styles = (colors: any) =>
       justifyContent: "space-between",
       marginTop: 4,
     },
+
     primaryBtn: {
       backgroundColor: colors.PURPLE,
       paddingVertical: 12,
@@ -496,14 +527,17 @@ const styles = (colors: any) =>
       fontWeight: "700",
       fontSize: 16,
     },
+
     secondaryBtn: {
-      backgroundColor: "#eee",
+      backgroundColor: isDark ? colors.INPUT : "#eee",
+      borderWidth: 1.5,
+      borderColor: colors.PURPLE,
       paddingVertical: 12,
       paddingHorizontal: 24,
       borderRadius: 10,
     },
     secondaryBtnText: {
-      color: "#333",
+      color: colors.PURPLE,
       fontWeight: "700",
       fontSize: 16,
     },
