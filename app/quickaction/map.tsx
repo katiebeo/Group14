@@ -1,25 +1,25 @@
+import * as Location from "expo-location"; 
+import { router } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  View,
-  Text,
   ActivityIndicator,
-  StyleSheet,
   Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import MapView, { Marker, Region } from "react-native-maps";
-import * as Location from "expo-location";
-import { useTheme } from "../../constants/theme";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
 import DropDownPicker from "react-native-dropdown-picker";
+import MapView, { Marker, Region } from "react-native-maps";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../../constants/theme";
 
-import AppHeader from "../../components/header";
 import BottomBar from "../../components/bottombar";
+import AppHeader from "../../components/header";
 import {
   fetchMapTrackers,
   fetchPlaces,
-  Tracker,
   Place,
+  Tracker,
 } from "../../src/ManifestMap/helpers";
 
 export default function MapScreen() {
@@ -74,8 +74,8 @@ export default function MapScreen() {
       setDropdownItems([
         { label: "All Trackers", value: "__all__" },
         ...trackers.map((t) => ({
-          label: t.id,
-          value: t.id,
+          label: `Tracker #${String(t.id)}`,
+          value: String(t.id), // ✅ ensure string
         })),
       ]);
     } else {
@@ -83,7 +83,7 @@ export default function MapScreen() {
         { label: "All Places", value: "__all__" },
         ...places.map((p) => ({
           label: `${p.name} (${p.placeType})`,
-          value: String(p.id),
+          value: String(p.id), // ✅ ensure string
         })),
       ]);
     }
@@ -138,18 +138,45 @@ export default function MapScreen() {
           showBack
         />
       </View>
+      <View
+        style={[
+          s.header,
+          { backgroundColor: colors.BACK, borderColor: colors.MUTED },
+        ]}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          style={s.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Text style={[s.backIcon, { color: colors.TEXT }]}>‹</Text>
+        </Pressable>
 
-      <Text style={s.title}>Map</Text>
+        <Text style={[s.headerTitle, { color: colors.TEXT }]} numberOfLines={1}>
+          Map
+        </Text>
+        <View style={s.headerRightStub} />
+      </View>
 
       <View style={s.tabRow}>
-        <TabButton active={activeTab === "trackers"} label="Trackers" onPress={() => {
-          setActiveTab("trackers");
-          setSelectedId("__all__");
-        }} />
-        <TabButton active={activeTab === "places"} label="Places" onPress={() => {
-          setActiveTab("places");
-          setSelectedId("__all__");
-        }} />
+        <TabButton
+          active={activeTab === "trackers"}
+          label="Trackers"
+          onPress={() => {
+            setActiveTab("trackers");
+            setSelectedId("__all__");
+          }}
+        />
+        <TabButton
+          active={activeTab === "places"}
+          label="Places"
+          onPress={() => {
+            setActiveTab("places");
+            setSelectedId("__all__");
+          }}
+        />
       </View>
 
       <View style={s.dropdownWrap}>
@@ -158,12 +185,21 @@ export default function MapScreen() {
           value={selectedId}
           items={dropdownItems}
           setOpen={setDropdownOpen}
-          setValue={setSelectedId}
+    
+          setValue={(callback) => {
+            const next = callback(selectedId) as string | null;
+            setSelectedId(String(next ?? "__all__"));
+          }}
           setItems={setDropdownItems}
+          onChangeValue={(val) => {
+            if (typeof val === "string") setSelectedId(val);
+          }}
           placeholder={`Select a ${activeTab === "trackers" ? "tracker" : "place"}...`}
           style={{ borderColor: colors.MUTED }}
           textStyle={{ color: colors.TEXT }}
           dropDownContainerStyle={{ borderColor: colors.MUTED, backgroundColor: colors.CARD }}
+          zIndex={1000}
+          zIndexInverse={1000}
         />
       </View>
 
@@ -180,12 +216,14 @@ export default function MapScreen() {
               if (item.latitude == null || item.longitude == null) return null;
               return (
                 <Marker
-                  key={item.id}
+                  key={String(item.id)} 
                   coordinate={{ latitude: item.latitude, longitude: item.longitude }}
-                  title={activeTab === "trackers" ? `Tracker: ${item.id}` : item.name}
-                  description={activeTab === "trackers"
-                    ? `Product ID: ${(item as Tracker).productId}`
-                    : `Type: ${(item as Place).placeType}`}
+                  title={activeTab === "trackers" ? `Tracker: ${String(item.id)}` : item.name}
+                  description={
+                    activeTab === "trackers"
+                      ? `Product ID: ${(item as Tracker).productId ?? "—"}`
+                      : `Type: ${(item as Place).placeType ?? "—"}`
+                  }
                   onPress={() => handleMarkerPress(item)}
                 />
               );
@@ -240,6 +278,37 @@ const styles = ({ colors }: { colors: any }) =>
       marginHorizontal: 16,
       color: colors.TEXT,
     },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+    },
+    backBtn: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 22,
+    },
+    backIcon: {
+      fontSize: 28,
+      fontWeight: "600",
+      lineHeight: 28,
+    },
+    headerTitle: {
+      flex: 1,
+      textAlign: "center",
+      fontSize: 28,
+      fontWeight: "800",
+      paddingHorizontal: 8,
+    },
+    headerRightStub: {
+      width: 44,
+      height: 44,
+    },
     tabRow: {
       flexDirection: "row",
       paddingHorizontal: 16,
@@ -250,6 +319,8 @@ const styles = ({ colors }: { colors: any }) =>
     dropdownWrap: {
       marginHorizontal: 16,
       marginVertical: 8,
+      zIndex: 1000,          
+      elevation: 10,         
     },
     mapWrap: { flex: 1 },
     loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
