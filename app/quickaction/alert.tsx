@@ -1,42 +1,58 @@
+import { Feather } from "@expo/vector-icons"; 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native"; // ✅ correct source
+import * as SecureStore from "expo-secure-store";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
   Pressable,
   RefreshControl,
+  StyleSheet,
   Text,
   TextInput,
   View,
-  StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
-import { useFocusEffect, router } from "expo-router";
-import AppHeader from "../../components/header";
 import BottomBar from "../../components/bottombar";
+import AppHeader from "../../components/header";
 import { useTheme } from "../../constants/theme";
 import { useAlerts } from "../../context/AlertContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as SecureStore from "expo-secure-store";
+
+type AlertStatus = "Active" | "Resolved";
+type AlertItem = {
+  id: string | number;
+  title: string;
+  dateISO: string;
+  status: AlertStatus;
+};
 
 export default function AlertsPage() {
   const { colors } = useTheme();
   const s = useMemo(() => styles(colors), [colors]);
-  const { alerts, refreshAlerts } = useAlerts();
+  const { alerts, refreshAlerts } = useAlerts() as {
+    alerts: AlertItem[];
+    refreshAlerts: () => Promise<void> | void;
+  };
 
   const [filter, setFilter] = useState<"All" | "Active" | "Resolved">("All");
-  const [selectedAlert, setSelectedAlert] = useState(null);
+  const [selectedAlert, setSelectedAlert] = useState<AlertItem | null>(null);
   const [resolutionNote, setResolutionNote] = useState("");
   const [resolving, setResolving] = useState(false);
 
-  useFocusEffect(useCallback(() => { refreshAlerts(); }, []));
+  useFocusEffect(
+    useCallback(() => {
+      refreshAlerts();
+    }, [refreshAlerts])
+  );
 
   const filtered = useMemo(() => {
-    if (filter === "All") return alerts;
-    return alerts.filter((a) => a.status === filter);
+    if (filter === "All") return alerts ?? [];
+    return (alerts ?? []).filter((a) => a.status === filter);
   }, [alerts, filter]);
 
-  const activeCount = alerts.filter((a) => a.status === "Active").length;
-  const resolvedCount = alerts.filter((a) => a.status === "Resolved").length;
+  const activeCount = (alerts ?? []).filter((a) => a.status === "Active").length;
+  const resolvedCount = (alerts ?? []).filter((a) => a.status === "Resolved").length;
 
   return (
     <SafeAreaView style={s.container}>
@@ -44,14 +60,34 @@ export default function AlertsPage() {
         <AppHeader onAvatarPress={() => router.push("/profile")} showBack />
       </View>
 
-      <View style={s.topBar}>
-        <Text style={s.topBarTitle}>Alerts</Text>
+      <View
+        style={[
+          s.header,
+          { backgroundColor: colors.BACK, borderColor: colors.MUTED },
+        ]}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          style={s.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Text style={[s.backIcon, { color: colors.TEXT }]}>‹</Text>
+        </Pressable>
+
+        <Text style={[s.headerTitle, { color: colors.TEXT }]} numberOfLines={1}>
+          Alerts
+        </Text>
+        <View style={s.headerRightStub} />
       </View>
+
+      <View style={s.topBar} />
 
       <View style={s.quickRow}>
         <ActionCard
           labelTop=""
-          labelBottom={`All (${alerts.length})`}
+          labelBottom={`All (${alerts?.length ?? 0})`}
           selected={filter === "All"}
           onPress={() => setFilter("All")}
           icon={<Feather name="list" size={22} color={colors.TEXT} />}
@@ -81,9 +117,11 @@ export default function AlertsPage() {
 
       <FlatList
         data={filtered}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         contentContainerStyle={s.listContent}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refreshAlerts} />}
+        refreshControl={
+          <RefreshControl refreshing={false} onRefresh={refreshAlerts} />
+        }
         renderItem={({ item }) => (
           <Pressable
             onPress={() => item.status === "Active" && setSelectedAlert(item)}
@@ -106,8 +144,9 @@ export default function AlertsPage() {
               value={resolutionNote}
               onChangeText={setResolutionNote}
               placeholder="Enter resolution details..."
-              placeholderTextColor={colors.TEXT}
+              placeholderTextColor={colors.MUTED}
               style={s.modalInput}
+              underlineColorAndroid="transparent"
             />
             <View style={s.modalActions}>
               <Pressable onPress={() => setSelectedAlert(null)}>
@@ -115,9 +154,10 @@ export default function AlertsPage() {
               </Pressable>
               <Pressable
                 onPress={async () => {
+                  if (!selectedAlert) return;
                   setResolving(true);
                   try {
-                    await resolveAlert(selectedAlert.id, resolutionNote);
+                    await resolveAlert(String(selectedAlert.id), resolutionNote);
                     setSelectedAlert(null);
                     setResolutionNote("");
                     await refreshAlerts();
@@ -145,7 +185,21 @@ export default function AlertsPage() {
   );
 }
 
-function ActionCard({ colors, selected, labelTop, labelBottom, icon, onPress }) {
+function ActionCard({
+  colors,
+  selected,
+  labelTop,
+  labelBottom,
+  icon,
+  onPress,
+}: {
+  colors: any;
+  selected: boolean;
+  labelTop: string;
+  labelBottom: string;
+  icon: React.ReactNode;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       onPress={onPress}
@@ -161,21 +215,25 @@ function ActionCard({ colors, selected, labelTop, labelBottom, icon, onPress }) 
     >
       <View style={{ alignItems: "flex-end" }}>{icon}</View>
       {!!labelTop && (
-        <Text style={{
-          fontSize: 15,
-          fontWeight: "700",
-          color: selected ? colors.LAVENDER : colors.TEXT,
-          marginTop: 6,
-        }}>
+        <Text
+          style={{
+            fontSize: 15,
+            fontWeight: "700",
+            color: selected ? colors.LAVENDER : colors.TEXT,
+            marginTop: 6,
+          }}
+        >
           {labelTop}
         </Text>
       )}
-      <Text style={{
-        fontSize: 20,
-        fontWeight: "600",
-        color: selected ? colors.LAVENDER : colors.TEXT,
-        marginTop: 2,
-      }}>
+      <Text
+        style={{
+          fontSize: 20,
+          fontWeight: "600",
+          color: selected ? colors.LAVENDER : colors.TEXT,
+          marginTop: 2,
+        }}
+      >
         {labelBottom}
       </Text>
     </Pressable>
@@ -201,7 +259,8 @@ function StatusBadge({ status }: { status: "Active" | "Resolved" }) {
 
 async function resolveAlert(alertId: string, note: string) {
   const tokenKeys = ["access_token", "authToken", "token"];
-  let token = null;
+  let token: string | null = null;
+
   for (const key of tokenKeys) {
     token = await SecureStore.getItemAsync(key);
     if (token) break;
@@ -212,6 +271,7 @@ async function resolveAlert(alertId: string, note: string) {
       if (token) break;
     }
   }
+
   const orgId = await AsyncStorage.getItem("organisationId");
   if (!token || !orgId) throw new Error("Missing credentials");
 
@@ -241,12 +301,31 @@ const styles = (colors: any) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.BACK },
     headerWrap: { paddingTop: 12, paddingBottom: 4, backgroundColor: colors.BACK },
-    topBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, marginBottom: 12, height: 44 },
+    topBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 8,
+      marginBottom: 12,
+      height: 44,
+    },
     topBarTitle: { fontSize: 28, fontWeight: "800", color: colors.TEXT, marginLeft: 12 },
-    quickRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 6, marginBottom: 16, paddingHorizontal: 8 },
-    sectionTitle: { fontSize: 20, fontWeight: "800", color: colors.TEXT, marginBottom: 10, marginTop: 6, paddingHorizontal: 8 },
+    quickRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: 6,
+      marginBottom: 16,
+      paddingHorizontal: 8,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: "800",
+      color: colors.TEXT,
+      marginBottom: 10,
+      marginTop: 6,
+      paddingHorizontal: 8,
+    },
     listContent: { paddingBottom: 90, paddingHorizontal: 8 },
-        alertCard: {
+    alertCard: {
       backgroundColor: colors.CARD,
       borderRadius: 16,
       padding: 12,
@@ -258,8 +337,41 @@ const styles = (colors: any) =>
     },
     alertDate: {
       fontSize: 12,
-      color: colors.MUTED, // ✅ lighter in dark mode
+      color: colors.MUTED,
     },
+
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+    },
+    backBtn: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 22,
+    },
+    backIcon: {
+      fontSize: 28,
+      fontWeight: "600",
+      lineHeight: 28,
+    },
+    headerTitle: {
+      flex: 1,
+      textAlign: "center",
+      fontSize: 28,
+      fontWeight: "800",
+      paddingHorizontal: 8,
+    },
+    headerRightStub: {
+      width: 44,
+      height: 44,
+    },
+
     emptyText: {
       padding: 16,
       color: colors.MUTED,
@@ -304,7 +416,7 @@ const styles = (colors: any) =>
       marginTop: 16,
     },
     cancelText: {
-      color: colors.TEXT, // ✅ white in dark mode, black in light
+      color: colors.TEXT,
       fontWeight: "600",
     },
     resolveBtn: {
