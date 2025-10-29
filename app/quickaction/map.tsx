@@ -284,7 +284,7 @@ const styles = ({ colors }: { colors: any }) =>
       justifyContent: "space-between",
       paddingHorizontal: 12,
       paddingVertical: 10,
-      borderBottomWidth: 1,
+      borderBottomWidth: 0,
     },
     backBtn: {
       width: 44,
