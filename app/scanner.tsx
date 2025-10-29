@@ -260,7 +260,7 @@ const styles = ({ colors, isDark }: { colors: any; isDark: boolean }) =>
       justifyContent: "space-between",
       paddingHorizontal: 12,
       paddingVertical: 10,
-      borderBottomWidth: 1, // ✅ visible divider in both modes
+      borderBottomWidth: 0, 
     },
 
     backBtn: {
@@ -305,7 +305,7 @@ const styles = ({ colors, isDark }: { colors: any; isDark: boolean }) =>
       borderColor: colors.MUTED,
     },
     cameraPlaceholder: {
-      backgroundColor: isDark ? colors.CARD : "#eee", // ✅ theme-aware placeholder
+      backgroundColor: isDark ? colors.CARD : "#eee", 
     },
 
     toggleBtn: {
@@ -326,7 +326,7 @@ const styles = ({ colors, isDark }: { colors: any; isDark: boolean }) =>
       alignSelf: "center",
       marginTop: 12,
       padding: 10,
-      backgroundColor: isDark ? colors.INPUT : "#f5f7fa", // ✅ theme-aware chip
+      backgroundColor: isDark ? colors.INPUT : "#f5f7fa",
       borderRadius: 8,
       borderWidth: 1,
       borderColor: colors.MUTED,
