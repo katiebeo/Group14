@@ -1,4 +1,4 @@
-// Imports
+// Imports 
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -20,40 +20,41 @@ import SimpleSelect from "../../components/select";
 import FieldLabel from "../../components/FieldLabel";
 import InfoDot from "../../components/InfoDot";
 
+type Option = { label: string; value: string };
+
 export default function ManifestPage() {
   const { colors, isDark } = useTheme();
   const s = styles(colors, isDark);
   const rawParams = useLocalSearchParams();
 
-
-  const FieldLabel = ({ children, style }: { children: React.ReactNode; style?: any }) => {
-  const { colors } = useTheme();
-  return (
-    <Text style={[{ fontWeight: "700", fontSize: 16, color: colors.TEXT }, style]}>
-      {children}
-    </Text>
-  );
-};
-
-
-  const id = typeof rawParams.id === "string" ? rawParams.id : Array.isArray(rawParams.id) ? rawParams.id[0] : "";
-  const name = typeof rawParams.name === "string" ? rawParams.name : Array.isArray(rawParams.name) ? rawParams.name[0] : "";
+  const id =
+    typeof rawParams.id === "string"
+      ? rawParams.id
+      : Array.isArray(rawParams.id)
+      ? rawParams.id[0]
+      : "";
+  const name =
+    typeof rawParams.name === "string"
+      ? rawParams.name
+      : Array.isArray(rawParams.name)
+      ? rawParams.name[0]
+      : "";
 
   const API_BASE_URL = "https://stagingapi.binarytech.io";
   const [manifestDetails, setManifestDetails] = useState<any>(null);
-  const [userOptions, setUserOptions] = useState([]);
-  const [placeOptions, setPlaceOptions] = useState([]);
+  const [userOptions, setUserOptions] = useState<Option[]>([]);
+  const [placeOptions, setPlaceOptions] = useState<Option[]>([]);
 
   const [showStartModal, setShowStartModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
 
-  const [startPlace, setStartPlace] = useState(null);
-  const [startingUser, setStartingUser] = useState(null);
+  const [startPlace, setStartPlace] = useState<string | null>(null);
+  const [startingUser, setStartingUser] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
 
-  const [targetDestination, setTargetDestination] = useState(null);
-  const [endingUser, setEndingUser] = useState(null);
+  const [targetDestination, setTargetDestination] = useState<string | null>(null);
+  const [endingUser, setEndingUser] = useState<string | null>(null);
 
   const loadManifest = async () => {
     try {
@@ -82,6 +83,7 @@ export default function ManifestPage() {
       const token = await AsyncStorage.getItem("access_token");
       const orgId = await AsyncStorage.getItem("organisationId");
       const currentUserId = await AsyncStorage.getItem("userId");
+      if (!token || !orgId) return;
 
       const headers = {
         Authorization: `Bearer ${token}`,
@@ -97,22 +99,24 @@ export default function ManifestPage() {
       const places = await placeRes.json();
 
       setUserOptions(
-        users.map((u: any) => ({
+        (Array.isArray(users) ? users : []).map((u: any) => ({
           label: u.name ?? u.email ?? `User ${u.id ?? "—"}`,
-          value: u.id ?? u.value,
+          value: String(u.id ?? u.value),
         }))
       );
 
       setPlaceOptions(
-        places.map((p: any) => ({
+        (Array.isArray(places) ? places : []).map((p: any) => ({
           label: p.label?.trim() || `Place ${p.value ?? "—"}`,
-          value: p.value,
+          value: String(p.value),
         }))
       );
 
-      const matchedUser = users.find((u: any) => u.id === currentUserId || u.value === currentUserId);
+      const matchedUser = (Array.isArray(users) ? users : []).find(
+        (u: any) => String(u.id ?? u.value) === String(currentUserId)
+      );
       if (matchedUser) {
-        const userId = matchedUser.id ?? matchedUser.value;
+        const userId = String(matchedUser.id ?? matchedUser.value);
         setStartingUser(userId);
         setEndingUser(userId);
       }
@@ -168,7 +172,7 @@ export default function ManifestPage() {
 
       const headers = {
         Authorization: `Bearer ${token}`,
-        OrganisationId: orgId.trim(),
+        OrganisationId: orgId?.trim() ?? "",
         "Content-Type": "application/json",
       };
 
@@ -189,116 +193,148 @@ export default function ManifestPage() {
     }
   };
 
-const submitEndManifest = async () => {
-  try {
-    const token = await AsyncStorage.getItem("access_token");
-    const orgId = await AsyncStorage.getItem("organisationId");
+  const submitEndManifest = async () => {
+    try {
+      const token = await AsyncStorage.getItem("access_token");
+      const orgId = await AsyncStorage.getItem("organisationId");
 
-    if (!token || !orgId || !manifestDetails?.id || !targetDestination || !endingUser) {
-      throw new Error("Missing required fields to close manifest.");
+      if (!token || !orgId || !manifestDetails?.id || !targetDestination || !endingUser) {
+        throw new Error("Missing required fields to close manifest.");
+      }
+
+      if (manifestDetails.status?.toLowerCase()?.includes("finished") || manifestDetails.endTime) {
+        Alert.alert("Manifest is already closed.");
+        return;
+      }
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        OrganisationId: orgId.trim(),
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+
+      const query = `manifestId=${manifestDetails.id}&endPlaceId=${targetDestination}&endUserId=${endingUser}`;
+      const url = `${API_BASE_URL}/v1/manifests/CloseManifest/?${query}`;
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers,
+      });
+
+      const resultText = await res.text();
+      if (!res.ok) throw new Error(resultText || "Failed to close manifest");
+
+      Alert.alert("✅ Manifest Closed");
+      setShowEndModal(false);
+      refreshManifest();
+    } catch (err: any) {
+      Alert.alert("Error", err.message ?? "Unknown error");
     }
-
-    if (manifestDetails.status?.toLowerCase().includes("finished") || manifestDetails.endTime) {
-      Alert.alert("Manifest is already closed.");
-      return;
-    }
-
-    const headers = {
-      Authorization: `Bearer ${token}`,
-      OrganisationId: orgId.trim(),
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    };
-
-    const query = `manifestId=${manifestDetails.id}&endPlaceId=${targetDestination}&endUserId=${endingUser}`;
-    const url = `${API_BASE_URL}/v1/manifests/CloseManifest/?${query}`;
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers,
-    });
-
-    const resultText = await res.text();
-    if (!res.ok) throw new Error(resultText || "Failed to close manifest");
-
-    Alert.alert("✅ Manifest Closed");
-    setShowEndModal(false);
-    refreshManifest();
-  } catch (err: any) {
-    Alert.alert("Error", err.message ?? "Unknown error");
-  }
-};
-
-
-
-
-  
-
-
-
+  };
 
   const actions = [
-  {
-    key: "update",
-    label: "Update Information",
-    icon: <Feather name="edit" size={34} color={colors.PURPLE} />,
-    onPress: () => router.push({ pathname: "/quickaction/manifest/UpdateManifest", params: { id } }),
-  },
-  {
-    key: "contents",
-    label: "Contents",
-    icon: <Feather name="package" size={34} color={colors.PURPLE} />,
-    onPress: () => router.push({ pathname: "/quickaction/manifest/contents", params: { id, name: manifestDetails?.name ?? name } }),
-  },
-  {
-    key: "start",
-    label: "Start Manifest",
-    icon: <Feather name="play-circle" size={34} color={colors.PURPLE} />,
-    onPress: () => setShowStartModal(true),
-  },
-  {
-    key: "end",
-    label: "End Manifest",
-    icon: <Feather name="stop-circle" size={34} color={colors.PURPLE} />,
-    onPress: () => {
-      if (manifestDetails?.status?.toLowerCase().includes("finished") || manifestDetails.endTime) {
-        Alert.alert("Manifest is already closed.");
-      } else {
-        setShowEndModal(true);
-      }
+    {
+      key: "update",
+      label: "Update Information",
+      icon: <Feather name="edit" size={34} color={colors.PURPLE} />,
+      onPress: () => router.push({ pathname: "/quickaction/manifest/UpdateManifest", params: { id } }),
     },
-  },
-];
+    {
+      key: "contents",
+      label: "Contents",
+      icon: <Feather name="package" size={34} color={colors.PURPLE} />,
+      onPress: () =>
+        router.push({
+          pathname: "/quickaction/manifest/contents",
+          params: { id, name: manifestDetails?.name ?? name },
+        }),
+    },
+    {
+      key: "start",
+      label: "Start Manifest",
+      icon: <Feather name="play-circle" size={34} color={colors.PURPLE} />,
+      onPress: () => setShowStartModal(true),
+    },
+    {
+      key: "end",
+      label: "End Manifest",
+      icon: <Feather name="stop-circle" size={34} color={colors.PURPLE} />,
+      onPress: () => {
+        if (manifestDetails?.status?.toLowerCase()?.includes("finished") || manifestDetails?.endTime) {
+          Alert.alert("Manifest is already closed.");
+        } else {
+          setShowEndModal(true);
+        }
+      },
+    },
+  ];
 
   return (
     <SafeAreaView style={s.container}>
-      <AppHeader
-  onAvatarPress={() => router.push("/profile")}
-  showBack
-  />
+      <AppHeader onAvatarPress={() => router.push("/profile")} showBack />
 
-
+      {/* Header row with back + title + status */}
       <View style={s.titleRow}>
-        <Text style={s.title}>{manifestDetails?.name ?? name ?? `Manifest ${id ?? "—"}`}</Text>
-        {manifestDetails?.status && (
-          <View style={[s.statusBubble, { backgroundColor: getStatusColor(manifestDetails.status) }]}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          style={s.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Feather name="chevron-left" size={28} color={colors.TEXT} />
+        </Pressable>
+
+        <Text style={s.title}>
+          {manifestDetails?.name ?? name ?? `Manifest ${id || "—"}`}
+        </Text>
+
+        {manifestDetails?.status ? (
+          <View
+            style={[
+              s.statusBubble,
+              { backgroundColor: getStatusColor(manifestDetails.status) },
+            ]}
+          >
             <Text style={s.statusText}>{manifestDetails.status}</Text>
           </View>
+        ) : (
+          <View style={{ width: 1, opacity: 0 }} />
         )}
       </View>
 
+      {/* Meta */}
       {manifestDetails && (
         <View style={s.metaBlock}>
-          <Text style={s.metaText}>🕒 Start Time: {manifestDetails.startTime ? new Date(manifestDetails.startTime).toLocaleString() : "—"}</Text>
-          <Text style={s.metaText}>📍 Start Location: {manifestDetails.startPlaceName ?? "—"}</Text>
-                    <Text style={s.metaText}>👤 Created By: {manifestDetails.startingUserName ?? "—"}</Text>
-          <Text style={s.metaText}>📝 Description: {manifestDetails.description ?? "—"}</Text>
           <Text style={s.metaText}>
-            📦 Tracker: {`Tracker ${manifestDetails.trackerId || manifestDetails.sensorId || manifestDetails.BinaryId || "—"}`}
+            🕒 Start Time:{" "}
+            {manifestDetails.startTime
+              ? new Date(manifestDetails.startTime).toLocaleString()
+              : "—"}
+          </Text>
+          <Text style={s.metaText}>
+            📍 Start Location: {manifestDetails.startPlaceName ?? "—"}
+          </Text>
+          <Text style={s.metaText}>
+            👤 Created By: {manifestDetails.startingUserName ?? "—"}
+          </Text>
+          <Text style={s.metaText}>
+            📝 Description: {manifestDetails.description ?? "—"}
+          </Text>
+          <Text style={s.metaText}>
+            📦 Tracker:{" "}
+            {`Tracker ${
+              manifestDetails.trackerId ||
+              manifestDetails.sensorId ||
+              manifestDetails.BinaryId ||
+              "—"
+            }`}
           </Text>
         </View>
       )}
 
+      {/* Action grid */}
       <View style={s.card}>
         {actions.map((action, idx) => (
           <Pressable
@@ -324,98 +360,136 @@ const submitEndManifest = async () => {
 
       {/* Start Manifest Modal */}
       <Modal visible={showStartModal} animationType="slide">
-  <SafeAreaView style={{ flex: 1, padding: 16, backgroundColor: colors.BACK }}>
-    <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 12, color: colors.TEXT }}>
-      Start Manifest
-    </Text>
+        <SafeAreaView style={{ flex: 1, padding: 16, backgroundColor: colors.BACK }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 12, color: colors.TEXT }}>
+            Start Manifest
+          </Text>
 
-    <FieldLabel>Start Place <InfoDot /></FieldLabel>
-    <SimpleSelect value={startPlace} options={placeOptions} onChange={setStartPlace} />
+          <FieldLabel>
+            Start Place <InfoDot />
+          </FieldLabel>
+          <SimpleSelect
+            value={startPlace}
+            options={placeOptions}
+            onChange={(v: string | string[]) => {
+              const val = Array.isArray(v) ? v[0] ?? null : v ?? null;
+              setStartPlace(val);
+            }}
+          />
 
-    <FieldLabel style={{ marginTop: 12 }}>Starting User <InfoDot /></FieldLabel>
-    <SimpleSelect value={startingUser} options={userOptions} onChange={setStartingUser} />
+          <FieldLabel style={{ marginTop: 12 }}>
+            Starting User <InfoDot />
+          </FieldLabel>
+          <SimpleSelect
+            value={startingUser}
+            options={userOptions}
+            onChange={(v: string | string[]) => {
+              const val = Array.isArray(v) ? v[0] ?? null : v ?? null;
+              setStartingUser(val);
+            }}
+          />
 
-    <FieldLabel style={{ marginTop: 12 }}>Start Time <InfoDot /></FieldLabel>
-    <Pressable
-      onPress={() => setShowStartPicker(true)}
-      style={[
-        s.input,
-        {
-          backgroundColor: isDark ? colors.INPUT : "#fff",
-          borderColor: isDark ? colors.MUTED : "#E1DFD6",
-        },
-      ]}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-        <Text style={{ flex: 1, color: startTime ? colors.TEXT : colors.PLACEHOLDER }}>
-          {startTime ? startTime.toLocaleString() : "Select..."}
-        </Text>
-        <Ionicons name="calendar-outline" size={18} color={colors.TEXT} />
-      </View>
-    </Pressable>
+          <FieldLabel style={{ marginTop: 12 }}>
+            Start Time <InfoDot />
+          </FieldLabel>
+          <Pressable
+            onPress={() => setShowStartPicker(true)}
+            style={[
+              s.input,
+              {
+                backgroundColor: isDark ? colors.INPUT : "#fff",
+                borderColor: isDark ? colors.MUTED : "#E1DFD6",
+              },
+            ]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+              <Text style={{ flex: 1, color: startTime ? colors.TEXT : colors.PLACEHOLDER }}>
+                {startTime ? startTime.toLocaleString() : "Select..."}
+              </Text>
+              <Ionicons name="calendar-outline" size={18} color={colors.TEXT} />
+            </View>
+          </Pressable>
 
-    {showStartPicker && (
-      <DateTimePicker
-        value={startTime || new Date()}
-        onChange={(_, d) => {
-          setShowStartPicker(false);
-          if (d) setStartTime(d);
-        }}
-        mode="time"
-      />
-    )}
+          {showStartPicker && (
+            <DateTimePicker
+              value={startTime || new Date()}
+              onChange={(_, d) => {
+                setShowStartPicker(false);
+                if (d) setStartTime(d);
+              }}
+              mode="time"
+            />
+          )}
 
-    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 24 }}>
-      <Pressable
-        onPress={() => {
-          setShowStartModal(false);
-          setStartPlace(null);
-          setStartingUser(null);
-          setStartTime(null);
-        }}
-        style={s.secondaryBtn}
-      >
-        <Text style={s.secondaryBtnText}>Cancel</Text>
-      </Pressable>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 24 }}>
+            <Pressable
+              onPress={() => {
+                setShowStartModal(false);
+                setStartPlace(null);
+                setStartingUser(null);
+                setStartTime(null);
+              }}
+              style={s.secondaryBtn}
+            >
+              <Text style={s.secondaryBtnText}>Cancel</Text>
+            </Pressable>
 
-      <Pressable onPress={submitStartManifest} style={s.primaryBtn}>
-        <Text style={s.primaryBtnText}>Confirm</Text>
-      </Pressable>
-    </View>
-  </SafeAreaView>
-</Modal>
+            <Pressable onPress={submitStartManifest} style={s.primaryBtn}>
+              <Text style={s.primaryBtnText}>Confirm</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </Modal>
 
       {/* End Manifest Modal */}
       <Modal visible={showEndModal} animationType="slide">
-  <SafeAreaView style={{ flex: 1, padding: 16, backgroundColor: colors.BACK }}>
-    <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 12, color: colors.TEXT }}>
-      End Manifest
-    </Text>
+        <SafeAreaView style={{ flex: 1, padding: 16, backgroundColor: colors.BACK }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 12, color: colors.TEXT }}>
+            End Manifest
+          </Text>
 
-    <FieldLabel>Target Destination <InfoDot /></FieldLabel>
-    <SimpleSelect value={targetDestination} options={placeOptions} onChange={setTargetDestination} />
+          <FieldLabel>
+            Target Destination <InfoDot />
+          </FieldLabel>
+          <SimpleSelect
+            value={targetDestination}
+            options={placeOptions}
+            onChange={(v: string | string[]) => {
+              const val = Array.isArray(v) ? v[0] ?? null : v ?? null;
+              setTargetDestination(val);
+            }}
+          />
 
-    <FieldLabel style={{ marginTop: 12 }}>Ending User <InfoDot /></FieldLabel>
-    <SimpleSelect value={endingUser} options={userOptions} onChange={setEndingUser} />
+          <FieldLabel style={{ marginTop: 12 }}>
+            Ending User <InfoDot />
+          </FieldLabel>
+          <SimpleSelect
+            value={endingUser}
+            options={userOptions}
+            onChange={(v: string | string[]) => {
+              const val = Array.isArray(v) ? v[0] ?? null : v ?? null;
+              setEndingUser(val);
+            }}
+          />
 
-    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 24 }}>
-      <Pressable
-        onPress={() => {
-          setShowEndModal(false);
-          setTargetDestination(null);
-          setEndingUser(null);
-        }}
-        style={s.secondaryBtn}
-      >
-        <Text style={s.secondaryBtnText}>Cancel</Text>
-      </Pressable>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 24 }}>
+            <Pressable
+              onPress={() => {
+                setShowEndModal(false);
+                setTargetDestination(null);
+                setEndingUser(null);
+              }}
+              style={s.secondaryBtn}
+            >
+              <Text style={s.secondaryBtnText}>Cancel</Text>
+            </Pressable>
 
-      <Pressable onPress={submitEndManifest} style={s.primaryBtn}>
-        <Text style={s.primaryBtnText}>Confirm</Text>
-      </Pressable>
-    </View>
-  </SafeAreaView>
-</Modal>
+            <Pressable onPress={submitEndManifest} style={s.primaryBtn}>
+              <Text style={s.primaryBtnText}>Confirm</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -453,6 +527,18 @@ const styles = (colors: any, isDark: boolean) =>
       fontSize: 13,
       color: colors.DARK + "AA",
       marginBottom: 4,
+    },
+    backBtn: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 22,
+    },
+    backIcon: {
+      fontSize: 28,
+      fontWeight: "600",
+      lineHeight: 28,
     },
     card: {
       width: "90%",
@@ -502,7 +588,6 @@ const styles = (colors: any, isDark: boolean) =>
       alignSelf: "center",
       flexShrink: 1,
     },
-
     input: {
       backgroundColor: isDark ? colors.INPUT : "#fff",
       borderWidth: 1,
@@ -515,7 +600,6 @@ const styles = (colors: any, isDark: boolean) =>
       justifyContent: "space-between",
       marginTop: 4,
     },
-
     primaryBtn: {
       backgroundColor: colors.PURPLE,
       paddingVertical: 12,
@@ -527,7 +611,6 @@ const styles = (colors: any, isDark: boolean) =>
       fontWeight: "700",
       fontSize: 16,
     },
-
     secondaryBtn: {
       backgroundColor: isDark ? colors.INPUT : "#eee",
       borderWidth: 1.5,

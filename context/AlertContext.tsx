@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  PropsWithChildren,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 
@@ -16,17 +22,19 @@ export type AlertItem = {
   token?: string;
 };
 
-const AlertContext = createContext<{
+type AlertContextShape = {
   alerts: AlertItem[];
   refreshAlerts: () => Promise<void>;
-}>({
+};
+
+const AlertContext = createContext<AlertContextShape>({
   alerts: [],
   refreshAlerts: async () => {},
 });
 
 export const useAlerts = () => useContext(AlertContext);
 
-export const AlertProvider = ({ children }) => {
+export const AlertProvider = ({ children }: PropsWithChildren) => {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
 
   const TOKEN_KEYS = ["access_token", "authToken", "token"];
@@ -47,7 +55,7 @@ export const AlertProvider = ({ children }) => {
     return null;
   }
 
-  async function buildHeaders() {
+  async function buildHeaders(): Promise<Record<string, string>> {
     const token = await getAuthToken();
     const orgId = (await AsyncStorage.getItem("organisationId"))?.trim();
     if (!token || !orgId) throw new Error("Missing auth token or organisationId");

@@ -7,9 +7,21 @@ import {
   Pressable,
   StyleSheet,
   Switch,
+  Alert, 
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import RNPickerSelect from "react-native-picker-select";
+
+type Option = { label: string; value: string };
+
+type ManifestModalProps = {
+  visible: boolean;
+  onClose: () => void;
+  onSubmit: (data: any) => void;
+  userOptions: Option[];
+  placeOptions: Option[];
+  mode: "start" | "end";
+};
 
 export default function ManifestModal({
   visible,
@@ -18,18 +30,11 @@ export default function ManifestModal({
   userOptions,
   placeOptions,
   mode,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onSubmit: (data: any) => void;
-  userOptions: { label: string; value: string }[];
-  placeOptions: { label: string; value: string }[];
-  mode: "start" | "end";
-}) {
-  const [timestamp, setTimestamp] = useState(new Date());
+}: ManifestModalProps) {
+  const [timestamp, setTimestamp] = useState<Date>(new Date());
   const [showPicker, setShowPicker] = useState(false);
-  const [selectedUser, setSelectedUser] = useState("");
-  const [selectedPlace, setSelectedPlace] = useState("");
+  const [selectedUser, setSelectedUser] = useState<string>("");
+  const [selectedPlace, setSelectedPlace] = useState<string>("");
   const [autoStart, setAutoStart] = useState(false);
   const [autoEnd, setAutoEnd] = useState(false);
 
@@ -61,7 +66,7 @@ export default function ManifestModal({
                 value={timestamp}
                 mode="datetime"
                 display="default"
-                onChange={(event, date) => {
+                onChange={(_, date) => {
                   setShowPicker(false);
                   if (date) setTimestamp(date);
                 }}
@@ -70,7 +75,7 @@ export default function ManifestModal({
 
             <Text style={styles.label}>{isStart ? "Start Place" : "Target Place"}</Text>
             <RNPickerSelect
-              onValueChange={setSelectedPlace}
+              onValueChange={(v: string | null) => setSelectedPlace(v ?? "")}
               items={placeOptions}
               placeholder={{ label: "Select a place", value: null }}
               style={pickerStyles}
@@ -79,7 +84,7 @@ export default function ManifestModal({
 
             <Text style={styles.label}>{isStart ? "Starting User" : "Ending User"}</Text>
             <RNPickerSelect
-              onValueChange={setSelectedUser}
+              onValueChange={(v: string | null) => setSelectedUser(v ?? "")}
               items={userOptions}
               placeholder={{ label: "Select a user", value: null }}
               style={pickerStyles}
@@ -105,18 +110,24 @@ export default function ManifestModal({
               </Pressable>
               <Pressable
                 onPress={() => {
-                  if (!selectedUser || !selectedPlace) return Alert.alert("Missing fields");
+                  if (!selectedUser || !selectedPlace) {
+                    return Alert.alert("Missing fields", "Please select user and place.");
+                  }
+                  const placeIdNum = Number(selectedPlace);
+                  if (Number.isNaN(placeIdNum)) {
+                    return Alert.alert("Invalid place", "Please choose a valid place.");
+                  }
                   const payload = isStart
                     ? {
                         startTime: timestamp.toISOString(),
-                        startPlaceId: parseInt(selectedPlace),
+                        startPlaceId: placeIdNum,
                         startingUserId: selectedUser,
                         autoStart,
                         autoEnd,
                       }
                     : {
                         endTime: timestamp.toISOString(),
-                        targetPlaceId: parseInt(selectedPlace),
+                        targetPlaceId: placeIdNum,
                         endUserId: selectedUser,
                       };
                   onSubmit(payload);

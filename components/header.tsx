@@ -37,11 +37,7 @@ export default function AppHeader({ onAvatarPress, showBack = false, title }: Ap
 
       <View style={s.header}>
         <View style={s.leftSection}>
-          {showBack && (
-            <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={8}>
-              <Ionicons name="chevron-back" size={26} color={colors.TEXT} />
-            </Pressable>
-          )}
+
           <Image source={require("../assets/images/logo_bina.png")} style={s.logo} resizeMode="contain" />
           {title && <Text style={[s.title, { color: colors.TEXT }]}>{title}</Text>}
         </View>
@@ -105,17 +101,13 @@ const styles = (C: typeof import("../constants/theme").light) =>
       alignItems: "center",
       marginBottom: 5,
       paddingHorizontal: 12,
-      paddingTop: 11,
+      paddingTop: 12,
     },
     leftSection: {
       flexDirection: "row",
       alignItems: "center",
     },
-    backBtn: {
-      paddingLeft: 0,
-      padding: 6,
-      marginRight: 6,
-    },
+
     logo: { width: 140, height: 40 },
     title: {
       fontSize: 18,
@@ -155,7 +147,7 @@ const styles = (C: typeof import("../constants/theme").light) =>
       }),
     },
     avatarPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-    popoverWrap: { position: "absolute", right: 60, top: 70, zIndex: 20, alignItems: "flex-end" },
+    popoverWrap: { position: "absolute", right: 45, top: 90, zIndex: 20, alignItems: "flex-end" },
     popoverCaret: {
       width: 0,
       height: 0,
@@ -201,3 +193,4 @@ const styles = (C: typeof import("../constants/theme").light) =>
       zIndex: 10,
     },
   });
+  //BEO

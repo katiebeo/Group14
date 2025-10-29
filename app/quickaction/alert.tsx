@@ -305,7 +305,7 @@ const styles = (colors: any) =>
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: 8,
-      marginBottom: 12,
+      marginBottom: -30,
       height: 44,
     },
     topBarTitle: { fontSize: 28, fontWeight: "800", color: colors.TEXT, marginLeft: 12 },
@@ -346,7 +346,7 @@ const styles = (colors: any) =>
       justifyContent: "space-between",
       paddingHorizontal: 12,
       paddingVertical: 10,
-      borderBottomWidth: 1,
+      borderBottomWidth: 0,
     },
     backBtn: {
       width: 44,

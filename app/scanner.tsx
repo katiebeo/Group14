@@ -33,7 +33,7 @@ export default function Scanner() {
   const [trackerOptions, setTrackerOptions] = useState<
     { label: string; value: string }[]
   >([]);
-  const [selectedTracker, setSelectedTracker] = useState("");
+  const [selectedTracker, setSelectedTracker] = useState<string>("");
 
   useEffect(() => {
     const fetchTrackers = async () => {
@@ -185,7 +185,10 @@ export default function Scanner() {
         )}
 
         {/* Toggle button */}
-        <TouchableOpacity style={s.toggleBtn} onPress={() => setCameraActive((v) => !v)}>
+        <TouchableOpacity
+          style={s.toggleBtn}
+          onPress={() => setCameraActive((v) => !v)}
+        >
           <Ionicons
             name={cameraActive ? "camera-reverse-outline" : "camera-outline"}
             size={20}
@@ -197,7 +200,10 @@ export default function Scanner() {
         </TouchableOpacity>
 
         {/* Manual Entry */}
-        <TouchableOpacity style={s.manualBtn} onPress={() => setManualEntryVisible((v) => !v)}>
+        <TouchableOpacity
+          style={s.manualBtn}
+          onPress={() => setManualEntryVisible((v) => !v)}
+        >
           <Text style={s.manualText}>Select Tracker Manually</Text>
         </TouchableOpacity>
 
@@ -207,9 +213,11 @@ export default function Scanner() {
             <SimpleSelect
               value={selectedTracker}
               options={trackerOptions}
-              onChange={(v) => {
-                setSelectedTracker(v);
-                handleTrackerId(v);
+              onChange={(v: string | string[]) => {
+                // Normalize union -> string for state + navigation
+                const id = Array.isArray(v) ? (v[0] ?? "") : v;
+                setSelectedTracker(id);
+                if (id) handleTrackerId(id);
               }}
               placeholder="Select a tracker..."
             />
@@ -260,7 +268,7 @@ const styles = ({ colors, isDark }: { colors: any; isDark: boolean }) =>
       justifyContent: "space-between",
       paddingHorizontal: 12,
       paddingVertical: 10,
-      borderBottomWidth: 0, 
+      borderBottomWidth: 0,
     },
 
     backBtn: {
@@ -305,7 +313,7 @@ const styles = ({ colors, isDark }: { colors: any; isDark: boolean }) =>
       borderColor: colors.MUTED,
     },
     cameraPlaceholder: {
-      backgroundColor: isDark ? colors.CARD : "#eee", 
+      backgroundColor: isDark ? colors.CARD : "#eee",
     },
 
     toggleBtn: {
