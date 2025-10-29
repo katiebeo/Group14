@@ -27,7 +27,7 @@ import AppHeader from "../../components/header";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useTheme } from "../../constants/theme"; // ✅ Centralized theme
+import { useTheme } from "../../constants/theme"; 
 
 // ---------- Tiny helpers ----------
 type Option = { label: string; value: string };
@@ -186,7 +186,7 @@ const SimpleSelect: React.FC<{
 export default function CreateManifest() {
   const { colors, isDark } = useTheme();
   const s = useMemo(() => styles({ colors, isDark }), [colors, isDark]);
-  useMemo(() => baseStyles({ colors, isDark }), [colors, isDark]); // keep warm if desired
+  useMemo(() => baseStyles({ colors, isDark }), [colors, isDark]); 
 
   const isNarrow = Dimensions.get("window").width < 380;
 
@@ -335,7 +335,7 @@ export default function CreateManifest() {
         Description: description,
       };
 
-      // ✅ Auto Start
+      // Auto Start
       if (autoStart && startPlace && startingUser && startTime instanceof Date) {
         payload.AutoStart = true;
         payload.StartPlaceId = Number(startPlace);
@@ -344,7 +344,7 @@ export default function CreateManifest() {
         payload.TargetPlaceId = Number(startPlace);
       }
 
-      // ✅ Auto End
+      // Auto End
       if (autoEnd && targetDestination && endingUser && deadline instanceof Date) {
         payload.AutoEnd = true;
         payload.EndTime = deadline.toISOString();
