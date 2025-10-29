@@ -74,7 +74,7 @@ export default function ManifestList() {
 
   return (
     <SafeAreaView style={s.container}>
-      <AppHeader onAvatarPress={() => router.push("/profile")} notifications={[]} />
+      <AppHeader onAvatarPress={() => router.push("/profile")} showBack />
       <Text style={s.title}>Manifests for Tracker {trackerId}</Text>
 
       {loading ? (
