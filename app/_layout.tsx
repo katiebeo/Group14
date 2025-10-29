@@ -1,4 +1,3 @@
-// app/_layout.tsx
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
@@ -7,6 +6,7 @@ import { AlertProvider } from "../context/AlertContext";
 
 function AppStack() {
   const { isDark } = useTheme();
+
   return (
     <>
       <StatusBar style={isDark ? "light" : "dark"} />

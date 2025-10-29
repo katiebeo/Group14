@@ -23,11 +23,10 @@ export default function MapWebView() {
     );
   }
 
-  // Option 1: Pass token via query param (if backend supports it)
+
   const url = `https://staging.binarymed.io/?range=last-3-months&token=${encodeURIComponent(token)}`;
 
-  // Option 2: Inject token via headers (requires backend support)
-  // const headers = { Authorization: `Bearer ${token}` };
+
 
   return (
     <WebView
@@ -36,8 +35,6 @@ export default function MapWebView() {
       javaScriptEnabled
       domStorageEnabled
       originWhitelist={["*"]}
-      // Optionally inject headers:
-      // source={{ uri: "https://staging.binarymed.io", headers }}
     />
   );
 }

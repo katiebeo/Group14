@@ -16,7 +16,7 @@ type Props = {
   activeTab: Tab;
   sortId: string;
   onSelect: (id: string) => void;
-  options: SortRow[]; // pass your SORT_OPTIONS here
+  options: SortRow[];
 };
 
 export default function MapSort({

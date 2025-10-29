@@ -11,9 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useColorScheme } from "react-native";
-
-
+import { useTheme } from "../constants/theme"; 
 export type Option = {
   label: string;
   value: string;
@@ -39,28 +37,8 @@ const SimpleSelect: React.FC<Props> = ({
   multi = false,
   loading = false,
 }) => {
-const scheme = useColorScheme();
-const isDark = scheme === "dark";
-
-const colors = isDark
-  ? {
-      BACK: "#0E0E11",
-      TEXT: "#F7F7F8",
-      INPUT: "#231C2C",
-      PLACEHOLDER: "#CCCCCC",
-      MUTED: "#2B2633",
-      BORDER: "#2B2633",
-    }
-  : {
-      BACK: "#FFFFFF",
-      TEXT: "#111111",
-      INPUT: "#FFFFFF",
-      PLACEHOLDER: "#777777",
-      MUTED: "#D8D8D8",
-      BORDER: "#E1DFD6",
-    };
-
-const s = useMemo(() => styles(colors), [colors]);
+  const { colors, isDark } = useTheme();
+  const s = useMemo(() => styles(colors, isDark), [colors, isDark]);
 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -107,7 +85,7 @@ const s = useMemo(() => styles(colors), [colors]);
         <Text style={{ flex: 1, color: selectedLabels ? colors.TEXT : colors.PLACEHOLDER }}>
           {selectedLabels || placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={18} color={colors.PLACEHOLDER} />
+        <Ionicons name="chevron-down" size={18} color={colors.TEXT} />
       </Pressable>
 
       <Modal visible={open} animationType="slide" onRequestClose={closeModal}>
@@ -153,14 +131,25 @@ const s = useMemo(() => styles(colors), [colors]);
                           closeModal();
                         }
                       }}
-                      style={s.optionRow}
+                      style={({ pressed }) => [
+                        s.optionRow,
+                        {
+                          backgroundColor: pressed
+                            ? isDark
+                              ? colors.MUTED
+                              : "rgba(0,0,0,0.05)"
+                            : isDark
+                              ? colors.CARD
+                              : "#fff",
+                        },
+                      ]}
                     >
                       <View style={{ flexDirection: "row", alignItems: "center" }}>
                         {item.icon && <View style={{ marginRight: 8 }}>{item.icon}</View>}
                         <Text style={[s.optionText, { color: colors.TEXT }]}>{item.label}</Text>
                       </View>
                       {multi && Array.isArray(value) && value.includes(item.value) && (
-                        <Ionicons name="checkmark" size={18} color={colors.PLACEHOLDER} />
+                        <Ionicons name="checkmark" size={18} color={colors.TEXT} />
                       )}
                     </Pressable>
                   ))}
@@ -174,44 +163,34 @@ const s = useMemo(() => styles(colors), [colors]);
   );
 };
 
-const styles = (colors: any) =>
+const styles = (colors: any, isDark: boolean) =>
   StyleSheet.create({
     input: {
-  backgroundColor: colors.INPUT,
-  borderWidth: 1,
-  borderColor: colors.BORDER,
-  borderRadius: 10,
-  paddingHorizontal: 12,
-  paddingVertical: 12,
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-},
+      backgroundColor: isDark ? colors.INPUT : "#fff",
+      borderWidth: 1,
+      borderColor: colors.BORDER,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
     searchInput: {
-  backgroundColor: colors.INPUT,
-  borderRadius: 8,
-  paddingHorizontal: 12,
-  paddingVertical: 10,
-  marginBottom: 12,
-  fontSize: 16,
-  color: colors.TEXT,
-},
-
-modalWrap: {
-  flex: 1,
-  backgroundColor: colors.BACK,
-  paddingTop: 48,
-  paddingHorizontal: 16,
-},
-
-optionRow: {
-  paddingVertical: 14,
-  paddingHorizontal: 8,
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  backgroundColor: colors.INPUT, // optional for hover effect
-},
+      backgroundColor: colors.INPUT,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginBottom: 12,
+      fontSize: 16,
+      color: colors.TEXT,
+    },
+    modalWrap: {
+      flex: 1,
+      backgroundColor: colors.BACK,
+      paddingTop: 48,
+      paddingHorizontal: 16,
+    },
     modalHeader: {
       flexDirection: "row",
       alignItems: "center",
@@ -223,19 +202,10 @@ optionRow: {
       marginLeft: 8,
       color: colors.TEXT,
     },
-    
     emptyText: {
       textAlign: "center",
       marginTop: 20,
       color: colors.MUTED,
-    },
-    separator: {
-      height: 1,
-      backgroundColor: colors.MUTED,
-    },
-    
-    optionText: {
-      fontSize: 16,
     },
     groupHeader: {
       fontSize: 14,
@@ -244,6 +214,17 @@ optionRow: {
       marginTop: 16,
       marginBottom: 4,
       paddingHorizontal: 8,
+    },
+    optionRow: {
+      paddingVertical: 14,
+      paddingHorizontal: 8,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      borderRadius: 8,
+    },
+    optionText: {
+      fontSize: 16,
     },
   });
 

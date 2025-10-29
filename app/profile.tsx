@@ -47,9 +47,12 @@ export default function Profile() {
 
       const result = JSON.parse(raw);
       setProfileData(result);
+      await AsyncStorage.setItem("user_fullName", result.fullName ?? "");
     } catch (err: any) {
       Alert.alert("Error", err.message || "Unable to load profile.");
     }
+    
+
   };
 
   useEffect(() => {
@@ -172,7 +175,17 @@ function SupportForm({ onClose }: { onClose: () => void }) {
   const [priority, setPriority] = useState("");
   const [ticketName, setTicketName] = useState("");
   const [description, setDescription] = useState("");
+  useEffect(() => {
+  const preloadUserInfo = async () => {
+    const fullName = await AsyncStorage.getItem("user_fullName");
+    const emailStored = await AsyncStorage.getItem("user_email");
 
+    if (fullName) setFirstName(fullName);
+    if (emailStored) setEmail(emailStored);
+  };
+
+  preloadUserInfo();
+}, []);
   const submitRequest = async () => {
     try {
       const payload = {
@@ -226,7 +239,7 @@ function SupportForm({ onClose }: { onClose: () => void }) {
         <Pressable
           onPress={submitRequest}
           style={{
-            backgroundColor: "#7D5FFF", // or colors.PURPLE if themed
+            backgroundColor: "#7D5FFF", 
             paddingHorizontal: 20,
             paddingVertical: 10,
             borderRadius: 10,

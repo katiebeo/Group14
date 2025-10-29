@@ -11,7 +11,7 @@ export const light = {
   CARD: "#EDE6F2",
   INPUT: "#F5EFF8",
   MUTED: "#D8CFE3",
-  PLACEHOLDER: "#111111", // black in light mode
+  PLACEHOLDER: "#111111", 
 };
 
 export const dark = {
@@ -23,7 +23,7 @@ export const dark = {
   CARD: "#14121A",
   INPUT: "#231C2C",
   MUTED: "#2B2633",
-  PLACEHOLDER: "#FFFFFF", // white in dark mode
+  PLACEHOLDER: "#FFFFFF", 
 };
 
 

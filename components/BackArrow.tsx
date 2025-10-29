@@ -27,7 +27,7 @@ const styles = (C: typeof import("../constants/theme").light) =>
       paddingVertical: 6,
       borderRadius: 10,
       alignSelf: "flex-start",
-      marginRight: 12, // 👈 adds space between arrow and logo
+      marginRight: 12,
       marginLeft: 2,
     },
   });

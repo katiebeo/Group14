@@ -82,9 +82,10 @@ export const AlertProvider = ({ children }) => {
       id: String(n.alertId ?? n.id),
       title: n.alertText ?? n.message ?? "Alert",
       status: n.resolvedStatus ? "Resolved" : "Active",
-      dateISO: typeof n.timestamp === "number"
-        ? new Date(n.timestamp * 1000).toISOString()
-        : new Date(n.timestamp).toISOString(),
+      dateISO:
+        typeof n.timestamp === "number"
+          ? new Date(n.timestamp * 1000).toISOString()
+          : new Date(n.timestamp).toISOString(),
       message: n.message,
       sensorId: n.sensorId,
       assetId: n.assetId,
@@ -97,7 +98,7 @@ export const AlertProvider = ({ children }) => {
 
   const refreshAlerts = async () => {
     try {
-      const data = await fetchAlertsRemote();
+      const data: AlertItem[] = await fetchAlertsRemote();
       setAlerts(data);
     } catch (e) {
       console.error("Alert refresh failed:", e);

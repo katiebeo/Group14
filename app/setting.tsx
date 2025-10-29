@@ -93,7 +93,7 @@ export default function AccountSettings() {
       if (!res.ok) throw new Error(result?.message || "Failed to save profile");
 
       Alert.alert("Success", "Profile updated successfully.");
-      router.replace("/profile?refresh=" + Date.now()); // ✅ triggers profile reload
+      router.replace("/profile?refresh=" + Date.now());
     } catch (err: any) {
       Alert.alert("Error", err.message || "Unable to save profile.");
     }
